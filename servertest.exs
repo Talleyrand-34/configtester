@@ -27,43 +27,19 @@ defmodule BrowseDir do
   - Merge obtained jsons
   - Write output
   """
-def execute_scripts(input_path) do
-    scripts_seq =
-      File.ls!(input_path <> "/seq")
-      |> Enum.filter(&(Path.extname(&1) == ".exs"))
-
-    scripts_parallel =
-      File.ls!(input_path <> "/parallel")
-      |> Enum.filter(&(Path.extname(&1) == ".exs"))
-
-    sequential_results =
-      if Enum.empty?(scripts_seq) do
-        IO.puts("No scripts found in the directory: #{input_path}/seq")
-        %{}
-      else
-        results = execute_scripts_sequential(input_path <> "/seq", scripts_seq)
-        IO.puts("Sequential results: #{inspect(results)}")
-        results
-      end
-
-    parallel_results =
-      if Enum.empty?(scripts_parallel) do
-        IO.puts("No scripts found in the directory: #{input_path}/parallel")
-        %{}
-      else
-        results = execute_scripts_parallel(input_path <> "/parallel", scripts_parallel)
-        IO.puts("Parallel results: #{inspect(results)}")
-        results
-      end
+  def execute_scripts(input_path) do
+    sequential_results = execute_script_group(input_path, "seq", &execute_scripts_sequential/2)
+    parallel_results = execute_script_group(input_path, "parallel", &execute_scripts_parallel/2)
+    p2p_results = execute_script_group(input_path, "p2p", &execute_scripts_sequential/2)
 
     # Transform results into the desired format
-    initial_results = %{"success" => [],"failed" => [],"error" => [], "unknown" => []}
-    results_with_sequential = add_results_to_list(initial_results, sequential_results, "sequential")
-    final_results = add_results_to_list(results_with_sequential, parallel_results, "parallel")
+    final_results =
+      %{"success" => [], "failed" => [], "error" => [], "unknown" => []}
+      |> add_results_to_list(sequential_results, "sequential")
+      |> add_results_to_list(parallel_results, "parallel")
+      |> add_results_to_list(p2p_results, "p2p")
 
-    formatted_results = %{
-      "results" => final_results
-    }
+    formatted_results = %{"results" => final_results}
 
     json_output = Jason.encode!(formatted_results, pretty: true)
     IO.puts(json_output)
@@ -72,6 +48,25 @@ def execute_scripts(input_path) do
     File.write!("output.json", json_output)
 
     formatted_results
+  end
+
+  defp execute_script_group(input_path, group_name, execute_fun) do
+    scripts = list_scripts(input_path, group_name)
+
+    if Enum.empty?(scripts) do
+      IO.puts("No scripts found in the directory: #{input_path}/#{group_name}")
+      %{}
+    else
+      results = execute_fun.(input_path <> "/#{group_name}", scripts)
+      IO.puts("#{String.capitalize(group_name)} results: #{inspect(results)}")
+      results
+    end
+  end
+
+  defp list_scripts(input_path, group_name) do
+    input_path <> "/#{group_name}"
+    |> File.ls!()
+    |> Enum.filter(&(Path.extname(&1) == ".exs"))
   end
 
   def execute_scripts_sequential(input_path, scripts) do
