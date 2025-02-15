@@ -14,11 +14,18 @@ end
 
 defmodule BrowseDir do
   @moduledoc """
-  Module to deploy Markdown files.
+  Module to execute scripts in two modes:
+  - Sequential
+  - Parallel
   """
 
   @doc """
-  Process Markdown files in a given directory and write HTML files.
+  Process:
+  - Get files
+  - Execute files
+  - Gather results
+  - Merge obtained jsons
+  - Write output
   """
 def execute_scripts(input_path) do
     scripts_seq =
@@ -88,6 +95,9 @@ def execute_scripts(input_path) do
     end)
   end
 
+  @doc """
+  Attempt to decode the JSON string value. If it fails, use the raw value
+  """
   def add_results_to_list(results, script_results, execution_type) do
     script_results
     |> Enum.reduce(results, fn {key, value}, acc ->
@@ -156,10 +166,10 @@ defmodule Main do
 
   defp cmd(parsed, _args) do
     input_path = parsed[:input] || "./scripts"
-    output_path = parsed[:output] || "./test/html/"
+    # output_path = parsed[:output] || "./test/html/"
     IO.puts("----")
     IO.inspect(input_path)
-    IO.inspect(output_path)
+    # IO.inspect(output_path)
 
     BrowseDir.execute_scripts(input_path)
   end
