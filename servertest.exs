@@ -1,5 +1,5 @@
 #!/usr/bin/env -S ERL_FLAGS=+B elixir
-Mix.install([{:ex_doc, "~> 0.24", only: :dev, runtime: false}, {:earmark, "~> 1.4"}, {:jason, "~> 1.0"}])
+Mix.install([{:ex_doc, "~> 0.24", only: :dev, runtime: false},  {:jason, "~> 1.2"},{:gen_icmp, github: "msantos/gen_icmp"}])
 
 ## Check if running as root
 #if System.cmd("id", ["-u"]) |> elem(0) |> String.trim() != "0" do
@@ -170,4 +170,5 @@ defmodule Main do
   end
 end
 
+Code.eval_file("./lib/ping.exs")
 Main.main(System.argv())
